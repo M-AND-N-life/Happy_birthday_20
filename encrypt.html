@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Notebook Photo Encryptor</title>
+<style>
+:root{--paper:#fbf6ea;--red:#c8202f;--deep:#8e1520;--ink:#2a2020;--tan:#efd8b0;--line:#e3d6bd}
+*{box-sizing:border-box}
+body{margin:0;background:#2b1818;color:var(--ink);font:16px/1.5 'Courier New',Courier,monospace;padding:24px 16px 60px}
+.card{max-width:760px;margin:0 auto;background:var(--paper);padding:28px 26px 30px;border-radius:6px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+h1{font:700 30px/1.1 'Segoe Print','Bradley Hand','Comic Sans MS',cursive;color:var(--red);margin:0 0 4px}
+.sub{color:#6b5546;margin:0 0 22px}
+h2{font-size:17px;margin:26px 0 8px;padding-bottom:4px;border-bottom:2px dashed var(--line)}
+h2 b{display:inline-block;background:var(--red);color:#fff;border-radius:50%;width:26px;height:26px;text-align:center;line-height:26px;margin-right:8px;font-size:14px}
+.hint{font-size:14px;color:#6b5546;margin:4px 0}
+input[type=password],input[type=number]{font:18px 'Courier New',monospace;padding:8px 10px;border:2px solid var(--line);border-radius:4px;background:#fff;width:100%;max-width:300px}
+input[type=file]{font-size:15px;max-width:100%}
+button{font:16px 'Courier New',monospace;background:var(--red);color:#fff;border:none;border-radius:4px;padding:10px 18px;cursor:pointer;box-shadow:0 3px 0 var(--deep)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:#fff;color:var(--red);border:2px solid var(--red);box-shadow:none;padding:6px 10px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:12px}
+.tile{background:#fff;padding:6px 6px 8px;box-shadow:0 2px 6px rgba(0,0,0,.15);text-align:center;font-size:13px}
+.tile img{width:100%;height:100px;object-fit:cover;display:block;margin-bottom:6px;background:#eee}
+.tile .ctl{display:flex;justify-content:center;gap:4px;margin-top:4px}
+.tile .ctl button{padding:2px 8px;font-size:13px;box-shadow:none}
+.page-tag{font-weight:700;color:var(--red)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+#log{white-space:pre-wrap;background:#fff;border:2px dashed var(--line);padding:10px 12px;font-size:14px;min-height:60px;max-height:260px;overflow:auto;margin-top:12px}
+.warn{background:#fde8ea;border-left:4px solid var(--red);padding:10px 12px;font-size:14px;margin:14px 0}
+.ok{color:#2f6b2a;font-weight:700}
+progress{width:100%;height:14px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Notebook photo encryptor</h1>
+  <p class="sub">Runs only on this computer. Nothing is uploaded anywhere. Your password is never saved.</p>
+
+  <h2><b>1</b>Choose the photos</h2>
+  <p class="hint">Select all photos at once. Use the arrows to set the order: photos 1 and 2 go on the first photo page, 3 and 4 on the next, and so on.</p>
+  <input type="file" id="photos" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+  <div class="grid" id="grid"></div>
+
+  <h2><b>2</b>Song (optional)</h2>
+  <p class="hint">Pick an mp3 to encrypt it too (saved as song.js). Or skip this and put a file named <b>song.mp3</b> in the assets folder yourself.</p>
+  <input type="file" id="song" accept="audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,.mp3,.m4a">
+  <div class="row" style="margin-top:6px"><button class="ghost" id="clearSong" type="button">remove song</button><span id="songInfo" class="hint"></span></div>
+
+  <h2><b>3</b>Password</h2>
+  <div class="row">
+    <input type="password" id="pw1" placeholder="password" autocomplete="new-password">
+    <input type="password" id="pw2" placeholder="type it again" autocomplete="new-password">
+  </div>
+
+  <h2><b>4</b>Photo size</h2>
+  <p class="hint">Photos are resized (longest side in pixels) and re-saved as JPEG. This keeps the site fast and also removes hidden data such as GPS location.</p>
+  <input type="number" id="maxSize" value="1600" min="600" max="4000" step="100" style="max-width:140px">
+
+  <h2><b>5</b>Encrypt and save</h2>
+  <div class="row">
+    <button id="go" type="button">Encrypt</button>
+  </div>
+  <progress id="prog" value="0" max="1" hidden></progress>
+  <div id="saveBox" hidden>
+    <p class="hint" style="margin-top:14px">Done. Now save the files into the <b>assets</b> folder of your notebook:</p>
+    <div class="row">
+      <button id="saveDir" type="button">Save into a folder...</button>
+      <button id="saveDl" type="button" class="ghost" style="padding:10px 14px;font-size:15px">Download files instead</button>
+    </div>
+    <p class="hint">"Save into a folder" works in Chrome and Edge: pick the <b>notebook</b> folder (or its assets folder). "Download" puts the files in your Downloads folder; then move them into <b>notebook/assets/</b>, replacing the old ones. If your browser asks to allow multiple downloads, say yes.</p>
+  </div>
+  <div id="log"></div>
+  <div class="warn">Keep your original photos in the <b>originals</b> folder (or anywhere outside the notebook folder). Only upload the files in <b>assets/</b> plus index.html. If an original photo is ever pushed to GitHub, deleting it later does not remove it from the repository history.</div>
+</div>
+
+<script>
+(function () {
+'use strict';
+var ITER = 250000;
+var photos = [];   // {file, url}
+var songFile = null;
+var outputs = [];  // {name, text}
+var $ = function (id) { return document.getElementById(id); };
+function log(t, cls) { var d = document.createElement('div'); if (cls) d.className = cls; d.textContent = t; $('log').appendChild(d); $('log').scrollTop = 1e9; }
+
+if (!(window.crypto && crypto.subtle)) { log('This browser does not allow encryption here. Please open this file in Chrome, Edge, Firefox or Safari.', ''); $('go').disabled = true; }
+
+$('photos').addEventListener('change', function (e) {
+  photos.forEach(function (p) { URL.revokeObjectURL(p.url); });
+  photos = Array.prototype.slice.call(e.target.files).sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); })
+    .map(function (f) { return { file: f, url: URL.createObjectURL(f) }; });
+  render();
+});
+function render() {
+  var g = $('grid'); g.innerHTML = '';
+  photos.forEach(function (p, i) {
+    var t = document.createElement('div'); t.className = 'tile';
+    t.innerHTML = '<img alt=""><div><span class="page-tag">p' + (i + 1) + '</span> &middot; page ' + (Math.floor(i / 2) + 1) + '</div><div class="ctl"><button type="button" data-a="up">&larr;</button><button type="button" data-a="down">&rarr;</button><button type="button" data-a="del">x</button></div>';
+    t.querySelector('img').src = p.url;
+    t.querySelector('.ctl').addEventListener('click', function (e) {
+      var a = e.target.getAttribute('data-a'); if (!a) return;
+      if (a === 'up' && i > 0) { var x = photos[i - 1]; photos[i - 1] = photos[i]; photos[i] = x; }
+      if (a === 'down' && i < photos.length - 1) { var y = photos[i + 1]; photos[i + 1] = photos[i]; photos[i] = y; }
+      if (a === 'del') { URL.revokeObjectURL(photos[i].url); photos.splice(i, 1); }
+      render();
+    });
+    g.appendChild(t);
+  });
+}
+$('song').addEventListener('change', function (e) { songFile = e.target.files[0] || null; $('songInfo').textContent = songFile ? (songFile.name + ' (' + (songFile.size / 1048576).toFixed(1) + ' MB)') : ''; });
+$('clearSong').addEventListener('click', function () { songFile = null; $('song').value = ''; $('songInfo').textContent = ''; });
+
+function b64(buf) {
+  var u = new Uint8Array(buf), s = '', CH = 0x8000;
+  for (var i = 0; i < u.length; i += CH) s += String.fromCharCode.apply(null, u.subarray(i, i + CH));
+  return btoa(s);
+}
+async function encrypt(bytes, pw, id) {
+  var salt = crypto.getRandomValues(new Uint8Array(16));
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  var base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  var key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: salt, iterations: ITER, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+  var ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: new TextEncoder().encode(id) }, key, bytes);
+  return { v: 1, it: ITER, s: b64(salt), i: b64(iv), d: b64(ct) };
+}
+function loadImage(url) {
+  return new Promise(function (res, rej) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { rej(new Error('cannot read image')); }; im.src = url; });
+}
+async function toJpeg(p, max) {
+  var im = await loadImage(p.url);
+  var w = im.naturalWidth, h = im.naturalHeight, sc = Math.min(1, max / Math.max(w, h));
+  var c = document.createElement('canvas'); c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+  var ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(im, 0, 0, c.width, c.height);
+  var blob = await new Promise(function (r) { c.toBlob(r, 'image/jpeg', 0.86); });
+  return new Uint8Array(await blob.arrayBuffer());
+}
+function asJs(id, obj) { return 'window.NB=window.NB||{};window.NB["' + id + '"]=' + JSON.stringify(obj) + ';\n'; }
+
+$('go').addEventListener('click', async function () {
+  var pw = $('pw1').value;
+  if (!photos.length) { log('Choose at least one photo first.'); return; }
+  if (pw.length < 4) { log('Use a password with at least 4 characters.'); return; }
+  if (pw !== $('pw2').value) { log('The two passwords do not match.'); return; }
+  var max = Math.max(600, Math.min(4000, parseInt($('maxSize').value, 10) || 1600));
+  $('go').disabled = true; $('saveBox').hidden = true; outputs = []; $('log').innerHTML = '';
+  var total = photos.length + 1 + (songFile ? 1 : 0), done = 0;
+  var prog = $('prog'); prog.hidden = false; prog.max = total; prog.value = 0;
+  try {
+    for (var i = 0; i < photos.length; i++) {
+      var id = 'p' + (i + 1);
+      var bytes = await toJpeg(photos[i], max);
+      var obj = await encrypt(bytes, pw, id); obj.t = 'image/jpeg';
+      outputs.push({ name: id + '.js', text: asJs(id, obj) });
+      log(id + '.js  (' + Math.round(bytes.length / 1024) + ' KB photo)');
+      prog.value = ++done;
+    }
+    if (songFile) {
+      var sb = new Uint8Array(await songFile.arrayBuffer());
+      var so = await encrypt(sb, pw, 'song'); so.t = songFile.type || 'audio/mpeg';
+      outputs.push({ name: 'song.js', text: asJs('song', so) });
+      log('song.js  (' + (sb.length / 1048576).toFixed(1) + ' MB song)');
+      prog.value = ++done;
+    }
+    var check = await encrypt(new TextEncoder().encode('notebook-ok'), pw, 'check');
+    var manifest = { v: 1, photos: photos.length, song: !!songFile, check: check };
+    outputs.push({ name: 'manifest.js', text: '/* made by encrypt.html - contains no photos and no password */\nwindow.NB_MANIFEST=' + JSON.stringify(manifest) + ';\n' });
+    log('manifest.js');
+    prog.value = ++done;
+    log('Encrypted ' + photos.length + ' photo(s)' + (songFile ? ' and the song' : '') + '. Now save the files.', 'ok');
+    $('saveBox').hidden = false;
+    if (!window.showDirectoryPicker) $('saveDir').hidden = true;
+  } catch (err) {
+    log('Something went wrong: ' + err.message + '. If a photo is HEIC (iPhone), convert it to JPG first.');
+  }
+  $('go').disabled = false;
+});
+
+$('saveDir').addEventListener('click', async function () {
+  try {
+    var dir = await window.showDirectoryPicker({ id: 'notebook', mode: 'readwrite' });
+    var hasIndex = false;
+    try { await dir.getFileHandle('index.html'); hasIndex = true; } catch (e) {}
+    if (hasIndex) dir = await dir.getDirectoryHandle('assets', { create: true });
+    else if (dir.name.toLowerCase() !== 'assets') { log('Please pick the notebook folder (the one with index.html) or its assets folder.'); return; }
+    for (var i = 0; i < outputs.length; i++) {
+      var fh = await dir.getFileHandle(outputs[i].name, { create: true });
+      var w = await fh.createWritable(); await w.write(outputs[i].text); await w.close();
+    }
+    var n = outputs.filter(function (o) { return /^p\d+\.js$/.test(o.name); }).length, removed = [];
+    for await (var entry of dir.values()) {
+      var m = /^p(\d+)\.js$/.exec(entry.name);
+      if (m && +m[1] > n) removed.push(entry.name);
+    }
+    for (var r = 0; r < removed.length; r++) await dir.removeEntry(removed[r]);
+    log('Saved ' + outputs.length + ' files into the assets folder' + (removed.length ? ' and removed old ' + removed.join(', ') : '') + '. Open index.html to check.', 'ok');
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    log('Could not save into the folder (' + (e && e.message) + '). Use "Download files instead".');
+  }
+});
+$('saveDl').addEventListener('click', async function () {
+  for (var i = 0; i < outputs.length; i++) {
+    var url = URL.createObjectURL(new Blob([outputs[i].text], { type: 'text/javascript' }));
+    var a = document.createElement('a'); a.href = url; a.download = outputs[i].name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(URL.revokeObjectURL.bind(URL, url), 4000);
+    await new Promise(function (r) { setTimeout(r, 350); });
+  }
+  log('Downloaded ' + outputs.length + ' files. Move them into notebook/assets/ (replace the old ones). If you see names like "p1 (1).js", rename them to p1.js.', 'ok');
+});
+})();
+</script>
+</body>
+</html>
